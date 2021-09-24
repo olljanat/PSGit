@@ -34,7 +34,7 @@ Function Invoke-PSGitLogin {
 	param (
 		[Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][ValidateSet("AzureDevOps","GitHub")][string]$Platform,
         [Parameter(Mandatory = $false)][ValidateNotNullOrEmpty()][string]$Project,
-        [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][string]$GitRepo,
+        [Parameter(Mandatory = $false)][ValidateNotNullOrEmpty()][string]$GitRepo,
 		[Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][SecureString]$SecureToken,
         [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][string]$Uri
 	)

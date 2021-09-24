@@ -6,8 +6,8 @@ Following platforms are currently supported:
 * GitHub (Enteprise)
 
 # Related issues
-https://github.com/Dejulia489/AzurePipelinesPS/issues/22
-https://github.com/microsoft/PowerShellForGitHub/issues/340
+* https://github.com/Dejulia489/AzurePipelinesPS/issues/22
+* https://github.com/microsoft/PowerShellForGitHub/issues/340
 
 # Usage
 
@@ -15,7 +15,8 @@ https://github.com/microsoft/PowerShellForGitHub/issues/340
 ```powershell
 Import-Module .\PSGit.psm1 -Force
 $AzDevToken = Read-Host -AsSecureString -Prompt "Give Azure DevOps PAT"
-Invoke-PSGitLogin -Platform "AzureDevOps" -Project "PSGitLab" -GitRepo "PSGit" -SecureToken $AzDevToken -Uri "https://dev.azure.com/olljanat"
+Invoke-PSGitLogin -Platform "AzureDevOps" -Project "PSGitLab" -SecureToken $AzDevToken -Uri "https://dev.azure.com/olljanat"
+
 Get-PSGitRepos
 name     webUrl
 ----     ------
@@ -26,7 +27,8 @@ PSGitLab https://dev.azure.com/olljanat/PSGitLab/_git/PSGitLab
 ```powershell
 Import-Module .\PSGit.psm1 -Force
 $GitHubToken = Read-Host -AsSecureString -Prompt "Give GitHub PAT"
-Invoke-PSGitLogin -Platform "GitHub" -Project "PSGitLab" -GitRepo "PSGit" -SecureToken $GitHubToken -Uri "https://github.com"
+Invoke-PSGitLogin -Platform "GitHub" -Project "PSGitLab" -SecureToken $GitHubToken -Uri "https://github.com"
+
 Get-PSGitRepos
 
 full_name         visibility description
