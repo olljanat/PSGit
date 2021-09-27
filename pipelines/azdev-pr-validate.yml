@@ -15,8 +15,6 @@ steps:
     Install-Module -Name Pester -SkipPublisherCheck -Scope CurrentUser -RequiredVersion "5.3.0" -Force
     Install-Module -Name AzurePipelinesPS -Scope CurrentUser -RequiredVersion "4.0.7" -Force
     Install-Module -Name PowerShellForGitHub -Scope CurrentUser -RequiredVersion "0.16.0" -Force
-    Write-Output "Do not do this in home: $(CI_AZURE_DEVOPS_TOKEN)"
-    Write-Warning "Do not do this in home: $(CI_AZURE_DEVOPS_TOKEN)"
     ./_TestAll.ps1 -PlainTextPAT "$(CI_AZURE_DEVOPS_TOKEN)"
   displayName: Run Pester
   workingDirectory: '$(Build.SourcesDirectory)'
