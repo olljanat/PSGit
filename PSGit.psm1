@@ -158,8 +158,8 @@ Function Get-PSGitEnvironment {
             }
         }
         GitHub {
-            Write-Error "GitHub support is not yet implemented. Look: https://github.com/microsoft/PowerShellForGitHub/issues/342"
-            exit 1
+            Write-Warning "Get-PSGitEnvironment: GitHub support is not yet implemented. Ignoring..."
+            return
         }
         default {
             Write-Error "Platform $Platform is not supported"
@@ -203,8 +203,8 @@ Function New-PSGitEnvironment {
             }
         }
         GitHub {
-            Write-Error "GitHub support is not yet implemented. Look: https://github.com/microsoft/PowerShellForGitHub/issues/342"
-            exit 1
+            Write-Warning "New-PSGitEnvironment: GitHub support is not yet implemented. Ignoring..."
+            return
         }
         default {
             Write-Error "Platform $Platform is not supported"
@@ -234,8 +234,8 @@ Function Remove-PSGitEnvironment {
             Remove-APEnvironment -Session $PSGitApSession -EnvironmentId $EnvironmentId
         }
         GitHub {
-            Write-Error "GitHub support is not yet implemented. Look: https://github.com/microsoft/PowerShellForGitHub/issues/342"
-            exit 1
+            Write-Warning "Remove-PSGitEnvironment: GitHub support is not yet implemented. Ignoring..."
+            return
         }
         default {
             Write-Error "Platform $Platform is not supported"
