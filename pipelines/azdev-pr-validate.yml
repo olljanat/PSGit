@@ -1,9 +1,12 @@
-trigger:
-  batch: true
-  pr:
-    paths:
-      exclude:
-      - README.md
+# Disable Azure DevOps triggers
+trigger: none
+
+# Enable GitHub pull request trigger
+pr:
+  paths:
+    exclude:
+    - README.md
+
 
 variables:
 - group: CI-Tokens
