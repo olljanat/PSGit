@@ -117,3 +117,113 @@ Function Get-PSGitRepos {
 
     return $newGitRepos
 }
+
+Function Get-PSGitEnvironments {
+    <#
+    .SYNOPSIS
+        Get Environments
+
+	.EXAMPLE
+        # Get environment "test"
+        Get-PSGitEnvironments | Where-Object {$_.name -eq "test"}
+    #>
+	param ()
+
+    $newenvs = @()
+    switch($PSGitPlatform) {
+        AzureDevOps {
+            $envs = Get-APEnvironmentList -Session $PSGitAzSession
+            forEach($repo in $envs) {
+                $newEnvs += New-Object -TypeName PSObject -Property @{
+                    "Id" = $repo.id
+                    "Name" = $repo.name
+                    "Description" = $repo.description
+                }
+            }
+        }
+        GitHub {
+            Write-Error "GitHub support is not yet implemented. Look: https://github.com/microsoft/PowerShellForGitHub/issues/342"
+            exit 1
+        }
+        default {
+            Write-Error "Platform $Platform is not supported"
+            exit 1
+        }
+    }
+    $defaultDisplaySet = 'Id','Name', "Description"
+	$defaultDisplayPropertySet = New-Object System.Management.Automation.PSPropertySet('DefaultDisplayPropertySet',[string[]]$defaultDisplaySet)
+	$PSStandardMembers = [System.Management.Automation.PSMemberInfo[]]@($defaultDisplayPropertySet)
+    $newenvs | Add-Member MemberSet PSStandardMembers $PSStandardMembers
+
+    return $newenvs
+}
+
+Function New-PSGitEnvironment {
+    <#
+    .SYNOPSIS
+        Create Environment
+
+    .PARAMETER Name
+        Name
+
+    .PARAMETER Description
+        Description
+
+	.EXAMPLE
+        New-PSGitEnvironment -Name "test" -Description "test environment"
+    #>
+	param (
+		[Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][string]$Name,
+        [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][string]$Description
+	)
+
+    switch($PSGitPlatform) {
+        AzureDevOps {
+            $env = New-APEnvironment -Session $PSGitAzSession -Name $Name -Description $Description
+            $newEnv = New-Object -TypeName PSObject -Property @{
+                "Id" = $env.id
+                "Name" = $env.name
+                "Description" = $env.description
+            }
+        }
+        GitHub {
+            Write-Error "GitHub support is not yet implemented. Look: https://github.com/microsoft/PowerShellForGitHub/issues/342"
+            exit 1
+        }
+        default {
+            Write-Error "Platform $Platform is not supported"
+            exit 1
+        }
+    }
+    return $newEnv
+}
+
+Function Remove-PSGitEnvironment {
+    <#
+    .SYNOPSIS
+        Remove Environment
+
+	.EXAMPLE
+        # Remove environment "test"
+        Get-PSGitEnvironments | Where-Object {$_.name -eq "test"}
+		Remove-PSGitEnvironment -EnvironmentId $env.id
+    #>
+	param (
+		[Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][string]$EnvironmentId
+	)
+
+    $newenvs = @()
+    switch($PSGitPlatform) {
+        AzureDevOps {
+            Remove-APEnvironment -Session $PSGitAzSession -EnvironmentId $EnvironmentId
+        }
+        GitHub {
+            Write-Error "GitHub support is not yet implemented. Look: https://github.com/microsoft/PowerShellForGitHub/issues/342"
+            exit 1
+        }
+        default {
+            Write-Error "Platform $Platform is not supported"
+            exit 1
+        }
+    }
+}

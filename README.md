@@ -1,15 +1,19 @@
 # PSGit
 *PSGit* provides cmdlets which can be used to create and manage GIT repositories, pull requests, work items, environments, etc on platform independent way.
 
-It prefer compatibility instead of features which why only those features which are supported by all platforms can be added to here. Target is also have full *integration* test coverage for all features provided by PSGit.
+It prefer compatibility instead of features which why only those features which are supported by all platforms can be added to here. Target is also have full *integration test* coverage for all features provided by PSGit.
 
 Following platforms are currently supported:
 * Azure DevOps (provided by [AzurePipelinesPS](https://www.powershellgallery.com/packages/AzurePipelinesPS))
 * GitHub (Enteprise) (provided by [PowerShellForGitHub](https://www.powershellgallery.com/packages/PowerShellForGitHub))
 
 # Related issues
+General items about idea of having tool like *PSGit*
 * https://github.com/Dejulia489/AzurePipelinesPS/issues/22
 * https://github.com/microsoft/PowerShellForGitHub/issues/340
+
+Missing features from GitHub side:
+* Environments management support https://github.com/microsoft/PowerShellForGitHub/issues/342
 
 # Usage
 ## Azure DevOps
