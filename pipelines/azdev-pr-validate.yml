@@ -16,6 +16,6 @@ steps:
     Install-Module -Name Pester -SkipPublisherCheck -Scope CurrentUser -RequiredVersion "5.3.0" -Force
     Install-Module -Name AzurePipelinesPS -Scope CurrentUser -RequiredVersion "4.0.7" -Force
     Install-Module -Name PowerShellForGitHub -Scope CurrentUser -RequiredVersion "0.16.0" -Force
-    ./_TestAll.ps1 -PlainTextPAT "$(CI-PAT)"
+    ./_TestAll.ps1 -PlainTextPAT "$(ci.azuredevops.token)"
   displayName: Run Pester
   workingDirectory: '$(Build.SourcesDirectory)'
