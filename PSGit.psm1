@@ -60,7 +60,7 @@ Function Invoke-PSGitLogin {
         GitHub {
 			$cred = New-Object System.Management.Automation.PSCredential("-", $SecureToken)
 			Set-GitHubAuthentication -Credential $cred -SessionOnly
-			Set-GitHubConfiguration -DisableTelemetry
+			Set-GitHubConfiguration -DisableTelemetry -DefaultOwnerName $Project -DefaultRepositoryName $GitRepo
         }
         default {
             Write-Error "Platform $Platform is not supported"
@@ -79,23 +79,41 @@ Function Get-PSGitRepos {
     #>
 	param ()
 
+    $newGitRepos = @()
     switch($PSGitPlatform) {
         AzureDevOps {
             $gitRepos = Get-APRepositoryList -Session $PSGitAzSession
-            $defaultDisplaySet = 'name','webUrl'
+            forEach($repo in $gitRepos) {
+                $newGitRepos += New-Object -TypeName PSObject -Property @{
+                    "Id" = $repo.id
+                    "Name" = $repo.name
+                    "Url" = $repo.webUrl
+                    "Visibility" = $repo.project.visibility
+                    "IsDisable" = $repo.isDisabled
+                }
+            }
         }
         GitHub {
 			$gitRepos = Get-GitHubRepository -OrganizationName $PSGitProject
-            $defaultDisplaySet = 'name','RepositoryUrl'
+            forEach($repo in $gitRepos) {
+                $newGitRepos += New-Object -TypeName PSObject -Property @{
+                    "Id" = $repo.id
+                    "Name" = $repo.name
+                    "Url" = $repo.RepositoryUrl
+                    "Visibility" = $repo.visibility
+                    "IsDisable" = $repo.disabled
+                }
+            }
         }
         default {
             Write-Error "Platform $Platform is not supported"
             exit 1
         }
     }
+    $defaultDisplaySet = 'Id','Name', "Url", "Visibility", "IsDisable"
 	$defaultDisplayPropertySet = New-Object System.Management.Automation.PSPropertySet('DefaultDisplayPropertySet',[string[]]$defaultDisplaySet)
 	$PSStandardMembers = [System.Management.Automation.PSMemberInfo[]]@($defaultDisplayPropertySet)
-    $gitRepos | Add-Member MemberSet PSStandardMembers $PSStandardMembers
+    $newGitRepos | Add-Member MemberSet PSStandardMembers $PSStandardMembers
 
-    return $gitRepos
+    return $newGitRepos
 }
