@@ -1,7 +1,9 @@
-pr:
-  paths:
-    exclude:
-    - README.md
+trigger:
+  batch: true
+  pr:
+    paths:
+      exclude:
+      - README.md
 
 variables:
 - group: CI-Tokens
