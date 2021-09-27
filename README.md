@@ -12,8 +12,12 @@ General items about idea of having tool like *PSGit*
 * https://github.com/Dejulia489/AzurePipelinesPS/issues/22
 * https://github.com/microsoft/PowerShellForGitHub/issues/340
 
-Missing features from GitHub side:
+Missing features from PowerShellForGitHub:
 * Environments management support https://github.com/microsoft/PowerShellForGitHub/issues/342
+
+Missing features from AzurePipelinesPS:
+* Linux support https://github.com/Dejulia489/AzurePipelinesPS/pull/24
+* Pull Request support https://github.com/Dejulia489/AzurePipelinesPS/pull/23
 
 # Usage
 ## Azure DevOps

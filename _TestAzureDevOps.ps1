@@ -12,13 +12,3 @@ $env = New-PSGitEnvironment -Name "test" -Description "test environment"
 Get-PSGitEnvironment
 Remove-PSGitEnvironment -EnvironmentId "$($env.id)"
 Get-PSGitPullRequest
-
-# Write-Output "`r`n--------------`r`n"
-
-# Write-Output "Testing GitHub"
-# Invoke-PSGitLogin -Platform "GitHub" -Project "PSGitLab" -GitRepo "PSGitLab" -SecureToken $GitHubToken -Uri "https://github.com"
-# Get-PSGitRepo
-# $env = New-PSGitEnvironment -Name "test" -Description "test environment"
-# Get-PSGitEnvironment
-# Remove-PSGitEnvironment -EnvironmentId "-"
-# Get-PSGitPullRequest
