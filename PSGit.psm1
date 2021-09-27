@@ -54,7 +54,6 @@ Function Invoke-PSGitLogin {
                 PersonalAccessToken = $PlainTextToken
                 ApiVersion          = '6.1-preview.1'
                 SessionName         = "AzSession"
-                Proxy               = "http://10.247.189.253:8888"
             }
             $global:PSGitApSession = New-APSession @splat
 
