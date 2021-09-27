@@ -1,5 +1,5 @@
 param (
-    [string]
+    [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][string]$PlainTextPAT
 )
 
 
