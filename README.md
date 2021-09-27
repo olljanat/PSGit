@@ -22,7 +22,7 @@ Import-Module .\PSGit.psm1 -Force
 $AzDevToken = Read-Host -AsSecureString -Prompt "Give Azure DevOps PAT"
 Invoke-PSGitLogin -Platform "AzureDevOps" -Project "PSGitLab" -SecureToken $AzDevToken -Uri "https://dev.azure.com/olljanat"
 
-Get-PSGitRepos
+Get-PSGitRepo
 Id         : 7536e5fe-dc07-43ad-8230-44c22af3963b
 Name       : a
 Url        : https://dev.azure.com/olljanat/PSGit/_git/a
@@ -42,7 +42,7 @@ Import-Module .\PSGit.psm1 -Force
 $GitHubToken = Read-Host -AsSecureString -Prompt "Give GitHub PAT"
 Invoke-PSGitLogin -Platform "GitHub" -Project "PSGitLab" -SecureToken $GitHubToken -Uri "https://github.com"
 
-Get-PSGitRepos
+Get-PSGitRepo
 Id         : 409959616
 Name       : PSGitLab
 Url        : https://github.com/PSGitLab/PSGitLab

@@ -21,32 +21,32 @@ Function Invoke-PSGitLogin {
     .PARAMETER Uri
         Uri
 
-	.EXAMPLE
+    .EXAMPLE
         # Login to Azure DevOps
         $AzDevToken = Read-Host -AsSecureString -Prompt "Give Azure DevOps PAT"
-        Invoke-PSGitLogin -Platform "AzureDevOps" -Project "PSGit" -GitRepo "PSGit" -SecureToken $AzDevToken -Uri "https://dev.azure.com/olljanat"
+        Invoke-PSGitLogin -Platform "AzureDevOps" -Project "PSGitLab" -GitRepo "PSGitLab" -SecureToken $AzDevToken -Uri "https://dev.azure.com/olljanat"
 
-	.EXAMPLE
+    .EXAMPLE
         # Login to GitHub
         $GitHubToken = Read-Host -AsSecureString -Prompt "Give GitHub PAT"
-        Invoke-PSGitLogin -Platform "GitHub" -Project "PSGitLab" -GitRepo "PSGit" -SecureToken $GitHubToken -Uri "https://github.com"
+        Invoke-PSGitLogin -Platform "GitHub" -Project "PSGitLab" -GitRepo "PSGitLab" -SecureToken $GitHubToken -Uri "https://github.com"
     #>
-	param (
-		[Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][ValidateSet("AzureDevOps","GitHub")][string]$Platform,
+    param (
+        [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][ValidateSet("AzureDevOps","GitHub")][string]$Platform,
         [Parameter(Mandatory = $false)][ValidateNotNullOrEmpty()][string]$Project,
         [Parameter(Mandatory = $false)][ValidateNotNullOrEmpty()][string]$GitRepo,
-		[Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][SecureString]$SecureToken,
+        [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][SecureString]$SecureToken,
         [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][string]$Uri
-	)
+    )
     $local:PlainTextToken = [System.Net.NetworkCredential]::new("", $SecureToken).Password
+    $global:PSGitRepo = $GitRepo
     $global:PSGitPlatform = $Platform
-	$global:PSGitProject = $Project
-	$global:PSGitRepo = $GitRepo
-	$global:PSGitUri = $Uri
+    $global:PSGitProject = $Project
+    $global:PSGitUri = $Uri
 
     switch($Platform) {
         AzureDevOps {
-			Get-APSession | Remove-APSession
+            Get-APSession | Remove-APSession
             $splat = @{
                 Collection          = '/'
                 Project             = $Project
@@ -55,12 +55,28 @@ Function Invoke-PSGitLogin {
                 ApiVersion          = '6.1-preview.1'
                 SessionName         = "AzSession"
             }
-            $global:PSGitAzSession = New-APSession @splat
+            $global:PSGitApSession = New-APSession @splat
+
+            [array]$gitRepoDetails = Get-PSGitRepo | Where-Object {$_.Name -eq $PSGitRepo}
+            if ($gitRepoDetails.count -ne 1) {
+                Write-Error "Cannot find GIT repo with name: $GitRepo"
+                exit 1
+            }
+            $global:PSGitApRepoId = $gitRepoDetails.id
+            $global:PSGitApRepoUrl = $gitRepoDetails.Url
         }
         GitHub {
-			$cred = New-Object System.Management.Automation.PSCredential("-", $SecureToken)
-			Set-GitHubAuthentication -Credential $cred -SessionOnly
-			Set-GitHubConfiguration -DisableTelemetry -DefaultOwnerName $Project -DefaultRepositoryName $GitRepo
+            $cred = New-Object System.Management.Automation.PSCredential("-", $SecureToken)
+            Set-GitHubAuthentication -Credential $cred -SessionOnly
+            Set-GitHubConfiguration -DisableTelemetry -DefaultOwnerName $Project -DefaultRepositoryName $GitRepo
+
+            [array]$gitRepoDetails = Get-PSGitRepo | Where-Object {$_.Name -eq $PSGitRepo}
+            if ($gitRepoDetails.count -ne 1) {
+                Write-Error "Cannot find GIT repo with name: $GitRepo"
+                exit 1
+            }
+            $global:PSGitHubRepoId = $gitRepoDetails.id
+            $global:PSGitHubRepoUrl = $gitRepoDetails.Url
         }
         default {
             Write-Error "Platform $Platform is not supported"
@@ -69,20 +85,20 @@ Function Invoke-PSGitLogin {
     }
 }
 
-Function Get-PSGitRepos {
+Function Get-PSGitRepo {
     <#
     .SYNOPSIS
         Get GIT Repositories
 
-	.EXAMPLE
-        Get-PSGitRepos
+    .EXAMPLE
+        Get-PSGitRepo
     #>
-	param ()
+    param ()
 
     $newGitRepos = @()
     switch($PSGitPlatform) {
         AzureDevOps {
-            $gitRepos = Get-APRepositoryList -Session $PSGitAzSession
+            $gitRepos = Get-APRepositoryList -Session $PSGitApSession
             forEach($repo in $gitRepos) {
                 $newGitRepos += New-Object -TypeName PSObject -Property @{
                     "Id" = $repo.id
@@ -94,7 +110,7 @@ Function Get-PSGitRepos {
             }
         }
         GitHub {
-			$gitRepos = Get-GitHubRepository -OrganizationName $PSGitProject
+            $gitRepos = Get-GitHubRepository -OrganizationName $PSGitProject
             forEach($repo in $gitRepos) {
                 $newGitRepos += New-Object -TypeName PSObject -Property @{
                     "Id" = $repo.id
@@ -111,28 +127,28 @@ Function Get-PSGitRepos {
         }
     }
     $defaultDisplaySet = 'Id','Name', "Url", "Visibility", "IsDisable"
-	$defaultDisplayPropertySet = New-Object System.Management.Automation.PSPropertySet('DefaultDisplayPropertySet',[string[]]$defaultDisplaySet)
-	$PSStandardMembers = [System.Management.Automation.PSMemberInfo[]]@($defaultDisplayPropertySet)
+    $defaultDisplayPropertySet = New-Object System.Management.Automation.PSPropertySet('DefaultDisplayPropertySet',[string[]]$defaultDisplaySet)
+    $PSStandardMembers = [System.Management.Automation.PSMemberInfo[]]@($defaultDisplayPropertySet)
     $newGitRepos | Add-Member MemberSet PSStandardMembers $PSStandardMembers
 
     return $newGitRepos
 }
 
-Function Get-PSGitEnvironments {
+Function Get-PSGitEnvironment {
     <#
     .SYNOPSIS
         Get Environments
 
-	.EXAMPLE
+    .EXAMPLE
         # Get environment "test"
-        Get-PSGitEnvironments | Where-Object {$_.name -eq "test"}
+        Get-PSGitEnvironment | Where-Object {$_.name -eq "test"}
     #>
-	param ()
+    param ()
 
     $newenvs = @()
     switch($PSGitPlatform) {
         AzureDevOps {
-            $envs = Get-APEnvironmentList -Session $PSGitAzSession
+            $envs = Get-APEnvironmentList -Session $PSGitApSession
             forEach($repo in $envs) {
                 $newEnvs += New-Object -TypeName PSObject -Property @{
                     "Id" = $repo.id
@@ -151,8 +167,8 @@ Function Get-PSGitEnvironments {
         }
     }
     $defaultDisplaySet = 'Id','Name', "Description"
-	$defaultDisplayPropertySet = New-Object System.Management.Automation.PSPropertySet('DefaultDisplayPropertySet',[string[]]$defaultDisplaySet)
-	$PSStandardMembers = [System.Management.Automation.PSMemberInfo[]]@($defaultDisplayPropertySet)
+    $defaultDisplayPropertySet = New-Object System.Management.Automation.PSPropertySet('DefaultDisplayPropertySet',[string[]]$defaultDisplaySet)
+    $PSStandardMembers = [System.Management.Automation.PSMemberInfo[]]@($defaultDisplayPropertySet)
     $newenvs | Add-Member MemberSet PSStandardMembers $PSStandardMembers
 
     return $newenvs
@@ -169,17 +185,17 @@ Function New-PSGitEnvironment {
     .PARAMETER Description
         Description
 
-	.EXAMPLE
+    .EXAMPLE
         New-PSGitEnvironment -Name "test" -Description "test environment"
     #>
-	param (
-		[Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][string]$Name,
+    param (
+        [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][string]$Name,
         [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][string]$Description
-	)
+    )
 
     switch($PSGitPlatform) {
         AzureDevOps {
-            $env = New-APEnvironment -Session $PSGitAzSession -Name $Name -Description $Description
+            $env = New-APEnvironment -Session $PSGitApSession -Name $Name -Description $Description
             $newEnv = New-Object -TypeName PSObject -Property @{
                 "Id" = $env.id
                 "Name" = $env.name
@@ -203,19 +219,19 @@ Function Remove-PSGitEnvironment {
     .SYNOPSIS
         Remove Environment
 
-	.EXAMPLE
+    .EXAMPLE
         # Remove environment "test"
-        Get-PSGitEnvironments | Where-Object {$_.name -eq "test"}
-		Remove-PSGitEnvironment -EnvironmentId $env.id
+        Get-PSGitEnvironment | Where-Object {$_.name -eq "test"}
+        Remove-PSGitEnvironment -EnvironmentId $env.id
     #>
-	param (
-		[Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][string]$EnvironmentId
-	)
+    param (
+        [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][string]$EnvironmentId
+    )
 
     $newenvs = @()
     switch($PSGitPlatform) {
         AzureDevOps {
-            Remove-APEnvironment -Session $PSGitAzSession -EnvironmentId $EnvironmentId
+            Remove-APEnvironment -Session $PSGitApSession -EnvironmentId $EnvironmentId
         }
         GitHub {
             Write-Error "GitHub support is not yet implemented. Look: https://github.com/microsoft/PowerShellForGitHub/issues/342"
@@ -226,4 +242,49 @@ Function Remove-PSGitEnvironment {
             exit 1
         }
     }
+}
+
+Function Get-PSGitPullRequest {
+    <#
+    .SYNOPSIS
+        Get GIT Pull Request
+
+	.EXAMPLE
+        Get-PSGitPullRequest
+    #>
+	param ()
+
+    $newPRs = @()
+    switch($PSGitPlatform) {
+        AzureDevOps {
+            $PRs = Get-APGitPullRequestList -Session $PSGitApSession -RepositoryId $PSGitApRepoId
+            forEach($pr in $PRs) {
+                $newPRs += New-Object -TypeName PSObject -Property @{
+                    "Id" = $pr.pullRequestId
+                    "Title" = $pr.title
+                    "Status" = $pr.status
+                }
+            }
+        }
+        GitHub {
+			$PRs = Get-GitHubPullRequest
+            forEach($pr in $PRs) {
+                $newPRs += New-Object -TypeName PSObject -Property @{
+                    "Id" = $pr.PullRequestNumber
+                    "Title" = $pr.title
+                    "Status" = $pr.state
+                }
+            }
+        }
+        default {
+            Write-Error "Platform $Platform is not supported"
+            exit 1
+        }
+    }
+    $defaultDisplaySet = 'Id','Title', "Status"
+	$defaultDisplayPropertySet = New-Object System.Management.Automation.PSPropertySet('DefaultDisplayPropertySet',[string[]]$defaultDisplaySet)
+	$PSStandardMembers = [System.Management.Automation.PSMemberInfo[]]@($defaultDisplayPropertySet)
+    $newPRs | Add-Member MemberSet PSStandardMembers $PSStandardMembers
+
+    return $newPRs
 }
