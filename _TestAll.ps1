@@ -1,10 +1,9 @@
 param (
-    [SecureString]$AzDevToken
+    [string]
 )
 
-# $AzDevToken = Read-Host -AsSecureString -Prompt "Give Azure DevOps PAT"
-# $GitHubToken = Read-Host -AsSecureString -Prompt "Give GitHub PAT"
 
+$AzDevToken = ConvertTo-SecureString -AsPlainText $PlainTextPAT -Force
 import-module .\PSGit.psm1 -Force
 
 Write-Output "Testing Azure DevOps"
