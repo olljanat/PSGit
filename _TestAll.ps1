@@ -1,3 +1,7 @@
+param (
+    [SecureString]$AzDevToken
+)
+
 # $AzDevToken = Read-Host -AsSecureString -Prompt "Give Azure DevOps PAT"
 # $GitHubToken = Read-Host -AsSecureString -Prompt "Give GitHub PAT"
 
