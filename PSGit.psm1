@@ -1,4 +1,4 @@
-Import-Module -Name AzurePipelinesPS -RequiredVersion 4.0.7 -Force
+Import-Module -Name ./dependencies/AzurePipelinesPS -Force
 Import-Module -Name PowerShellForGitHub -RequiredVersion 0.16.0 -Force
 
 Function Invoke-PSGitLogin {
