@@ -35,12 +35,12 @@ Import-Module .\PSGit.psm1 -Force
 ### Azure DevOps
 ```powershell
 $AzDevToken = Read-Host -AsSecureString -Prompt "Give Azure DevOps PAT"
-Invoke-PSGitLogin -Platform "AzureDevOps" -Project "PSGitLab" -SecureToken $AzDevToken -Uri "https://dev.azure.com/olljanat"
+Invoke-PSGitLogin -Platform "AzureDevOps" -Project "PSGitLab" -GitRepo "PSGitLab" -SecureToken $AzDevToken -Uri "https://dev.azure.com/olljanat"
 ```
 ### GitHub
 ```powershell
 $GitHubToken = Read-Host -AsSecureString -Prompt "Give GitHub PAT"
-Invoke-PSGitLogin -Platform "GitHub" -Project "PSGitLab" -SecureToken $GitHubToken -Uri "https://github.com"
+Invoke-PSGitLogin -Platform "GitHub" -Project "PSGitLab" -GitRepo "PSGitLab" -SecureToken $GitHubToken -Uri "https://github.com"
 ```
 
 ## Using platform independent cmdlets
