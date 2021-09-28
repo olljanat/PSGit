@@ -50,6 +50,7 @@ Get-Command -Module PSGit | Where-Object {$_.Name -like "*-PSGit*"}
 
 # Fully working example commands:
 Get-PSGitRepo
+New-PSGitPullRequest -SourceBranch "feat/new-ui" -TargetBranch "master" -Title "New UI" -Description "Implemented new UI"
 Get-PSGitPullRequest
 ```
 For more details look tests on *PSGit.Tests.ps1*
