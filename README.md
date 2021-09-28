@@ -20,42 +20,36 @@ Missing features from AzurePipelinesPS:
 * Pull Request support https://github.com/Dejulia489/AzurePipelinesPS/pull/23
 
 # Usage
-## Azure DevOps
 ```powershell
+# Clone this repo
+git clone https://github.com/olljanat/PSGit
+
+# Install depended modules (note AzurePipelinesPS is temporarily included to this repo)
+Install-Module -Name PowerShellForGitHub -Scope CurrentUser -RequiredVersion "0.16.0" -Force
+
+# Import this module
 Import-Module .\PSGit.psm1 -Force
+```
+
+## Login
+### Azure DevOps
+```powershell
 $AzDevToken = Read-Host -AsSecureString -Prompt "Give Azure DevOps PAT"
 Invoke-PSGitLogin -Platform "AzureDevOps" -Project "PSGitLab" -SecureToken $AzDevToken -Uri "https://dev.azure.com/olljanat"
-
-Get-PSGitRepo
-Id         : 7536e5fe-dc07-43ad-8230-44c22af3963b
-Name       : a
-Url        : https://dev.azure.com/olljanat/PSGit/_git/a
-Visibility : public
-IsDisable  : False
-
-Id         : 78781818-5440-42be-9771-6e04986b1324
-Name       : PSGit
-Url        : https://dev.azure.com/olljanat/PSGit/_git/PSGit
-Visibility : public
-IsDisable  : False
 ```
-
-## GitHub
+### GitHub
 ```powershell
-Import-Module .\PSGit.psm1 -Force
 $GitHubToken = Read-Host -AsSecureString -Prompt "Give GitHub PAT"
 Invoke-PSGitLogin -Platform "GitHub" -Project "PSGitLab" -SecureToken $GitHubToken -Uri "https://github.com"
-
-Get-PSGitRepo
-Id         : 409959616
-Name       : PSGitLab
-Url        : https://github.com/PSGitLab/PSGitLab
-Visibility : private
-IsDisable  : False
-
-Id         : 410751460
-Name       : environments-lab
-Url        : https://github.com/PSGitLab/environments-lab
-Visibility : public
-IsDisable  : False
 ```
+
+## Using platform independent cmdlets
+```powershell
+# List PSGit commands:
+Get-Command -Module PSGit | Where-Object {$_.Name -like "*-PSGit*"}
+
+# Fully working example commands:
+Get-PSGitRepo
+Get-PSGitPullRequest
+```
+For more details look tests on *PSGit.Tests.ps1*
