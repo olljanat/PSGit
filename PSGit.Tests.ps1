@@ -7,6 +7,7 @@ param (
 )
 
 $SecureToken = ConvertTo-SecureString -AsPlainText $PlainTextPAT -Force
+Import-Module .\PSGit.psd1 -Force
 Import-Module .\PSGit.psm1 -Force
 Invoke-PSGitLogin -Platform $Platform -Project $Project -GitRepo $GitRepo -Uri $Uri -SecureToken $SecureToken
 
