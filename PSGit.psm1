@@ -292,3 +292,63 @@ Function Get-PSGitPullRequest {
 
     return $newPRs
 }
+
+Function New-PSGitPullRequest {
+    <#
+    .SYNOPSIS
+        Create Pull Request on draft mode
+
+    .PARAMETER Title
+        Title
+
+    .PARAMETER Description
+        Description
+
+    .EXAMPLE
+		# Create pull request from current working branch to master branch
+        New-PSGitPullRequest -Name "test" -Description "Test PR"
+
+    .EXAMPLE
+		# Create pull request from test branch to main branch
+        New-PSGitPullRequest -SourceBranch "test" -TargetBranch "main" -Name "test" -Description "Test PR"
+    #>
+    param (
+        [Parameter(Mandatory = $false)][ValidateNotNullOrEmpty()][string]$SourceBranch = $(git branch --show-current),
+        [Parameter(Mandatory = $false)][ValidateNotNullOrEmpty()][string]$TargetBranch = "master",
+        [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][string]$Title,
+        [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][string]$Description
+    )
+
+    switch($PSGitPlatform) {
+        AzureDevOps {
+            try {
+                $SourceBranchRef = "refs/heads/$SourceBranch"
+                $TargetBranchRef = "refs/heads/$TargetBranch"
+                $newPR = New-APGitPullRequest -Session $PSGitApSession -RepositoryId $PSGitApRepoId `
+                    -SourceBranchRef $SourceBranchRef -TargetBranchRef $TargetBranchRef `
+                    -Title $Title -Description $Description -IsDraft
+            } catch {
+				Write-Host "##[error] Exception.Message: $($_.Exception.Message)" -ForegroundColor Red
+				Write-Host "##[error] Server response: $($_)" -ForegroundColor Red
+				throw "New-PSGitPullRequest failed"
+            }
+        }
+        GitHub {
+            try {
+                $newPR = New-GitHubPullRequest `
+                    -Head $SourceBranch -Base $TargetBranch `
+                    -Title $Title -Body $Description `
+                    -Draft
+            } catch {
+				Write-Host "##[error] Exception.Message: $($_.Exception.Message)" -ForegroundColor Red
+				Write-Host "##[error] Server response: $($_)" -ForegroundColor Red
+				throw "New-PSGitPullRequest failed"
+            }
+        }
+        default {
+            Write-Error "Platform $Platform is not supported"
+            exit 1
+        }
+    }
+    return $newPR
+}
