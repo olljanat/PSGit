@@ -24,9 +24,6 @@ Missing features from AzurePipelinesPS:
 # Clone this repo
 git clone https://github.com/olljanat/PSGit
 
-# Install depended modules (note AzurePipelinesPS is temporarily included to this repo)
-Install-Module -Name PowerShellForGitHub -Scope CurrentUser -RequiredVersion "0.16.0" -Force
-
 # Import this module
 Import-Module .\PSGit.psm1 -Force
 ```
