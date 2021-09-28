@@ -29,3 +29,25 @@ Describe 'PSGitEnvironment' {
         Start-Sleep -Seconds 1
     }
 }
+
+Describe 'PSGitPullRequest' {
+    It "Executing New-PSGitPullRequest" {
+        { New-PSGitPullRequest -SourceBranch "DO-NOT-DELETE/ci-test-branch" -TargetBranch "master" -Title "xTestAutomation - PSGit" -Description "Created by New-PSGitPullRequest CI test" } | Should -Not -Throw
+        Start-Sleep -Seconds 1
+    }
+
+    It "Executing Get-PSGitPullRequest" {
+        $PR = Get-PSGitPullRequest | Where-Object {$_.Title -eq "xTestAutomation - PSGit"}
+        $PR.id | Should -Not -BeNullOrEmpty
+        { [int]$PR.id } | Should -Not -Throw
+        $global:prID = $PR.id
+        Start-Sleep -Seconds 1
+    }
+
+    <#
+    It "Executing Update-PSGitPullRequest" {
+        { Update-PSGitEnvironment -Id $prID } | Should -Not -Throw
+        Start-Sleep -Seconds 1
+    }
+    #>
+}
