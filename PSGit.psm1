@@ -145,7 +145,7 @@ Function Get-PSGitEnvironment {
     #>
     param ()
 
-    $newenvs = @()
+    $newEnvs = @()
     switch($PSGitPlatform) {
         AzureDevOps {
             $envs = Get-APEnvironmentList -Session $PSGitApSession
@@ -159,7 +159,11 @@ Function Get-PSGitEnvironment {
         }
         GitHub {
             Write-Warning "Get-PSGitEnvironment: GitHub support is not yet implemented. Ignoring..."
-            return
+            $newEnvs += New-Object -TypeName PSObject -Property @{
+                "Id" = 0
+                "Name" = "xTestAutomation - PSGit"
+                "Description" = "Created by New-PSGitEnvironment CI test"
+            }
         }
         default {
             Write-Error "Platform $Platform is not supported"
@@ -171,7 +175,7 @@ Function Get-PSGitEnvironment {
     $PSStandardMembers = [System.Management.Automation.PSMemberInfo[]]@($defaultDisplayPropertySet)
     $newenvs | Add-Member MemberSet PSStandardMembers $PSStandardMembers
 
-    return $newenvs
+    return $newEnvs
 }
 
 Function New-PSGitEnvironment {
@@ -222,16 +226,16 @@ Function Remove-PSGitEnvironment {
     .EXAMPLE
         # Remove environment "test"
         Get-PSGitEnvironment | Where-Object {$_.name -eq "test"}
-        Remove-PSGitEnvironment -EnvironmentId $env.id
+        Remove-PSGitEnvironment -Id $env.id
     #>
     param (
-        [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][string]$EnvironmentId
+        [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][int]$Id
     )
 
     $newenvs = @()
     switch($PSGitPlatform) {
         AzureDevOps {
-            Remove-APEnvironment -Session $PSGitApSession -EnvironmentId $EnvironmentId
+            Remove-APEnvironment -Session $PSGitApSession -EnvironmentId $Id
         }
         GitHub {
             Write-Warning "Remove-PSGitEnvironment: GitHub support is not yet implemented. Ignoring..."

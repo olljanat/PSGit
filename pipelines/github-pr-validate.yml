@@ -21,4 +21,9 @@ jobs:
           # Install-Module -Name AzurePipelinesPS -Scope CurrentUser -RequiredVersion "4.0.7" -Force
 
           Install-Module -Name PowerShellForGitHub -Scope CurrentUser -RequiredVersion "0.16.0" -Force
-          ./_TestGitHub.ps1 -PlainTextPAT "$env:CI_GITHUB_TOKEN"
+          ./_TestAll.ps1 `
+            -Platform "GitHub" `
+            -Project "PSGitLab" `
+            -GitRepo "PSGitLab" `
+            -Uri "https://github.com" `
+            -PlainTextPAT "$env:CI_GITHUB_TOKEN"
