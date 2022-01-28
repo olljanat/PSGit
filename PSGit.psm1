@@ -100,9 +100,10 @@ Function Get-PSGitRepo {
         AzureDevOps {
             $gitRepos = Get-APRepositoryList -Session $PSGitApSession
             forEach($repo in $gitRepos) {
+                $repoName = $repo.name -replace " ","%20"
                 $newGitRepos += New-Object -TypeName PSObject -Property @{
                     "Id" = $repo.id
-                    "Name" = $repo.name
+                    "Name" = $repoName
                     "Url" = $repo.webUrl
                     "Visibility" = $repo.project.visibility
                     "IsDisable" = $repo.isDisabled
@@ -112,9 +113,10 @@ Function Get-PSGitRepo {
         GitHub {
             $gitRepos = Get-GitHubRepository -OrganizationName $PSGitProject
             forEach($repo in $gitRepos) {
+                $repoName = $repo.name -replace " ","%20"
                 $newGitRepos += New-Object -TypeName PSObject -Property @{
                     "Id" = $repo.id
-                    "Name" = $repo.name
+                    "Name" = $repoName
                     "Url" = $repo.RepositoryUrl
                     "Visibility" = $repo.visibility
                     "IsDisable" = $repo.disabled
