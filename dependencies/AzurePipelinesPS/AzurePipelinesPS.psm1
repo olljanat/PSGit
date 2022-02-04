@@ -1,4 +1,4 @@
-$Script:PSModuleRoot = $PSScriptRoot
+﻿$Script:PSModuleRoot = $PSScriptRoot
 $Script:ModuleName = "AzurePipelinesPS"
 $Script:APAppDataPath = [Environment]::GetFolderPath('ApplicationData')
 $Script:ModuleDataRoot = (Join-Path -Path $Script:APAppDataPath -ChildPath $Script:ModuleName)
@@ -206,6 +206,14 @@ function Get-APApiEndpoint
             'build-buildId'
             {
                 return '_apis/build/builds/{0}'
+            }
+            'build-timeline'
+            {
+                return '_apis/build/builds/{0}/timeline'
+            }
+            'build-timelineId'
+            {
+                return '_apis/build/builds/{0}/timeline/{1}'
             }
             'build-definitions'
             {
@@ -443,6 +451,10 @@ function Get-APApiEndpoint
             {
                 return '_apis/pipelines/approvals'
             }
+            'pipelines-approvalId'
+            {
+                return '_apis/pipelines/approvals/{0}'
+            }
             'pipelines-pipelineId'
             {
                 return '_apis/pipelines/{0}'
@@ -675,6 +687,10 @@ function Get-APApiEndpoint
             'tokenadmin-subjectDescriptor'
             {
                 return '_apis/tokenadmin/personalaccesstokens/{0}'
+            }
+            'userentitlements-entitlements'
+            {
+                return '_apis/userentitlements'
             }
             'wit-classificationnodes'
             {
@@ -1132,9 +1148,14 @@ function Set-APUri
                         return '{0}{1}/{2}?api-version={3}' -f $Instance.AbsoluteUri.replace($Instance.Host, "vssps.$($Instance.Host)"), $Collection, $ApiEndpoint, $ApiVersion
                     }
                 }
-                # Used by groupentitlements 
+                # Used by groupentitlements and userentitlements
                 'vsaex'
                 {
+                    If ($Instance.AbsoluteUri -and $Collection -and $Query)
+                    {
+                        # Append vsaex prefix to instance with query
+                        return '{0}{1}/{2}/{3}?{4}&api-version={5}' -f $Instance.AbsoluteUri.replace($Instance.Host, "vsaex.$($Instance.Host)"), $Collection, $Project, $ApiEndpoint, $Query, $ApiVersion
+                    }
                     If ($Instance.AbsoluteUri -and $Collection)
                     {
                         # Append vsaex prefix to instance without query
@@ -6487,7 +6508,7 @@ function Get-APBuild
             Proxy               = $Proxy
             ProxyCredential     = $ProxyCredential
         }
-        $results = Invoke-APRestMethod @invokeAPRestMethodSplat 
+        $results = Invoke-APRestMethod @invokeAPRestMethodSplat
         If ($results.value)
         {
             return $results.value
@@ -8002,6 +8023,226 @@ function Get-APBuildList
             return
         }
         elseIf ($results.value)
+        {
+            return $results.value
+        }
+        else
+        {
+            return $results
+        }
+    }
+    
+    end
+    {
+    }
+}
+# Get-APBuildTimeline.ps1
+function Get-APBuildTimeline
+{
+    <#
+    .SYNOPSIS
+
+    Returns Azure Pipeline build timeline.
+
+    .DESCRIPTION
+
+    Returns Azure Pipeline build timeline by build and timeline id.
+    The build id can be retrieved by using Get-APBuildList.
+    The timeline id can be retrieved by using Get-APBuildList under orchestrationPlan.planId.
+
+    .PARAMETER Instance
+    
+    The Team Services account or TFS server.
+    
+    .PARAMETER Collection
+    
+    For Azure DevOps the value for collection should be the name of your orginization. 
+    For both Team Services and TFS The value should be DefaultCollection unless another collection has been created.
+
+    .PARAMETER Project
+    
+    Project ID or project name.
+
+    .PARAMETER ApiVersion
+    
+    Version of the api to use.
+
+    .PARAMETER PersonalAccessToken
+    
+    Personal access token used to authenticate that has been converted to a secure string. 
+    It is recomended to uses an Azure Pipelines PS session to pass the personal access token parameter among funcitons, See New-APSession.
+    https://docs.microsoft.com/en-us/azure/devops/organizations/accounts/use-personal-access-tokens-to-authenticate?view=vsts
+    
+    .PARAMETER Credential
+
+    Specifies a user account that has permission to send the request.
+
+    .PARAMETER Proxy
+    
+    Use a proxy server for the request, rather than connecting directly to the Internet resource. Enter the URI of a network proxy server.
+
+    .PARAMETER ProxyCredential
+    
+    Specifie a user account that has permission to use the proxy server that is specified by the -Proxy parameter. The default is the current user.
+
+    .PARAMETER Session
+
+    Azure DevOps PS session, created by New-APSession.
+
+    .PARAMETER BuildId
+
+    The id of the build.
+
+    .PARAMETER TimelineId
+	
+    The id of the timeline.
+
+    .PARAMETER ChangeId
+
+    Undocumented.
+
+    .PARAMETER PlanId
+
+    Undocumented.
+
+    .INPUTS
+    
+    None, does not support pipeline.
+
+    .OUTPUTS
+
+    PSObject, Azure Pipelines build(s).
+
+    .EXAMPLE
+
+    Returns the build timeline with the id of '7' for the 'myFirstProject.
+
+    Get-APBuildTimeline -Instance 'https://dev.azure.com' -Collection 'myCollection' -Project 'myFirstProject' -BuildId 7 -TimelineId xxxxx-xxxxx-xxxx-xxxxx
+
+    .LINK
+
+    https://docs.microsoft.com/en-us/rest/api/azure/devops/build/timeline/get?view=azure-devops-rest-6.0
+    #>
+    [CmdletBinding(DefaultParameterSetName = 'ByPersonalAccessToken')]
+    Param
+    (
+        [Parameter(Mandatory,
+            ParameterSetName = 'ByPersonalAccessToken')]
+        [Parameter(Mandatory,
+            ParameterSetName = 'ByCredential')]
+        [uri]
+        $Instance,
+
+        [Parameter(Mandatory,
+            ParameterSetName = 'ByPersonalAccessToken')]
+        [Parameter(Mandatory,
+            ParameterSetName = 'ByCredential')]
+        [string]
+        $Collection,
+
+        [Parameter(Mandatory,
+            ParameterSetName = 'ByPersonalAccessToken')]
+        [Parameter(Mandatory,
+            ParameterSetName = 'ByCredential')]
+        [string]
+        $Project,
+
+        [Parameter(Mandatory,
+            ParameterSetName = 'ByPersonalAccessToken')]
+        [Parameter(Mandatory,
+            ParameterSetName = 'ByCredential')]
+        [string]
+        $ApiVersion,
+
+        [Parameter(ParameterSetName = 'ByPersonalAccessToken')]
+        [Security.SecureString]
+        $PersonalAccessToken,
+
+        [Parameter(ParameterSetName = 'ByCredential')]
+        [pscredential]
+        $Credential,
+        
+        [Parameter(ParameterSetName = 'ByPersonalAccessToken')]
+        [Parameter(ParameterSetName = 'ByCredential')]
+        [string]
+        $Proxy,
+
+        [Parameter(ParameterSetName = 'ByPersonalAccessToken')]
+        [Parameter(ParameterSetName = 'ByCredential')]
+        [pscredential]
+        $ProxyCredential,
+
+        [Parameter(Mandatory,
+            ParameterSetName = 'BySession')]
+        [object]
+        $Session,
+
+        [Parameter(Mandatory)]
+        [int]
+        $BuildId,
+
+        [Parameter(Mandatory)]
+        [string]
+        $TimelineId,
+
+        [Parameter()]
+        [string]
+        $ChangeId,
+
+        [Parameter()]
+        [string]
+        $PlanId
+)
+
+    begin
+    {
+        If ($PSCmdlet.ParameterSetName -eq 'BySession')
+        {
+            $currentSession = $Session | Get-APSession
+            If ($currentSession)
+            {
+                $Instance = $currentSession.Instance
+                $Collection = $currentSession.Collection
+                $Project = $currentSession.Project
+                $PersonalAccessToken = $currentSession.PersonalAccessToken
+                $Credential = $currentSession.Credential
+                $Proxy = $currentSession.Proxy
+                $ProxyCredential = $currentSession.ProxyCredential
+                If ($currentSession.Version)
+                {
+                    $ApiVersion = (Get-APApiVersion -Version $currentSession.Version)
+                }
+                else
+                {
+                    $ApiVersion = $currentSession.ApiVersion
+                }
+            }
+        }
+    }
+    
+    process
+    {
+        $apiEndpoint = (Get-APApiEndpoint -ApiType 'build-timelineId') -f $BuildId, $TimelineId
+        $queryParameters = Set-APQueryParameters -InputObject $PSBoundParameters
+        $setAPUriSplat = @{
+            Collection  = $Collection
+            Instance    = $Instance
+            Project     = $Project
+            ApiVersion  = $ApiVersion
+            ApiEndpoint = $apiEndpoint
+            Query       = $queryParameters
+        }
+        [uri] $uri = Set-APUri @setAPUriSplat
+        $invokeAPRestMethodSplat = @{
+            Method              = 'GET'
+            Uri                 = $uri
+            Credential          = $Credential
+            PersonalAccessToken = $PersonalAccessToken
+            Proxy               = $Proxy
+            ProxyCredential     = $ProxyCredential
+        }
+        $results = Invoke-APRestMethod @invokeAPRestMethodSplat 
+        If ($results.value)
         {
             return $results.value
         }
@@ -16624,6 +16865,415 @@ function Get-APPipeline
     {
     }
 }
+# Get-APPipelineApproval.ps1
+function Get-APPipelineApproval
+{
+    <#
+    .SYNOPSIS
+
+    Returns an Azure Pipeline approval.
+
+    .DESCRIPTION
+
+    Returns an Azure Pipeline approval based on a filter query.
+
+    .PARAMETER Instance
+    
+    The Team Services account or TFS server.
+    
+    .PARAMETER Collection
+    
+    For Azure DevOps the value for collection should be the name of your orginization. 
+    For both Team Services and TFS The value should be DefaultCollection unless another collection has been created.
+
+    .PARAMETER Project
+    
+    Project ID or project name.
+
+    .PARAMETER ApiVersion
+    
+    Version of the api to use.
+
+    .PARAMETER PersonalAccessToken
+    
+    Personal access token used to authenticate that has been converted to a secure string. 
+    It is recomended to uses an Azure Pipelines PS session to pass the personal access token parameter among funcitons, See New-APSession.
+    https://docs.microsoft.com/en-us/azure/devops/organizations/accounts/use-personal-access-tokens-to-authenticate?view=vsts
+    
+    .PARAMETER Credential
+
+    Specifies a user account that has permission to send the request.
+
+    .PARAMETER Proxy
+    
+    Use a proxy server for the request, rather than connecting directly to the Internet resource. Enter the URI of a network proxy server.
+
+    .PARAMETER ProxyCredential
+    
+    Specifie a user account that has permission to use the proxy server that is specified by the -Proxy parameter. The default is the current user.
+
+    .PARAMETER Session
+
+    Azure DevOps PS session, created by New-APSession.
+    
+    .PARAMETER Expand
+
+    Approval details to expand. Options are none, permissions, steps.
+
+    .PARAMETER ApprovalId
+
+    The id of the approval.
+
+    .INPUTS
+    
+    None, does not support pipeline.
+
+    .OUTPUTS
+
+    PSObject, Azure Pipelines approval(s)
+
+    .EXAMPLE
+
+    Returns an AP approval.
+
+    Get-APPipelineApproval -Instance 'https://dev.azure.com' -Collection 'myCollection' -Project 'myFirstProject' -ApiVersion 6.1-preview -ApprovalId 4eg5aavx-1000-4333-ba70-67d5b15f0e
+
+    .LINK
+
+    https://docs.microsoft.com/en-us/rest/api/azure/devops/approvalsandchecks/approvals/get?view=azure-devops-rest-6.1
+    #>
+    [CmdletBinding(DefaultParameterSetName = 'ByPersonalAccessToken')]
+    Param
+    (
+        [Parameter(Mandatory,
+            ParameterSetName = 'ByPersonalAccessToken')]
+        [Parameter(Mandatory,
+            ParameterSetName = 'ByCredential')]
+        [uri]
+        $Instance,
+
+        [Parameter(Mandatory,
+            ParameterSetName = 'ByPersonalAccessToken')]
+        [Parameter(Mandatory,
+            ParameterSetName = 'ByCredential')]
+        [string]
+        $Collection,
+
+        [Parameter(Mandatory,
+            ParameterSetName = 'ByPersonalAccessToken')]
+        [Parameter(Mandatory,
+            ParameterSetName = 'ByCredential')]
+        [string]
+        $Project,
+
+        [Parameter(Mandatory,
+            ParameterSetName = 'ByPersonalAccessToken')]
+        [Parameter(Mandatory,
+            ParameterSetName = 'ByCredential')]
+        [string]
+        $ApiVersion,
+
+        [Parameter(ParameterSetName = 'ByPersonalAccessToken')]
+        [Security.SecureString]
+        $PersonalAccessToken,
+
+        [Parameter(ParameterSetName = 'ByCredential')]
+        [pscredential]
+        $Credential,
+
+        [Parameter(ParameterSetName = 'ByPersonalAccessToken')]
+        [Parameter(ParameterSetName = 'ByCredential')]
+        [string]
+        $Proxy,
+
+        [Parameter(ParameterSetName = 'ByPersonalAccessToken')]
+        [Parameter(ParameterSetName = 'ByCredential')]
+        [pscredential]
+        $ProxyCredential,
+
+        [Parameter(Mandatory,
+            ParameterSetName = 'BySession')]
+        [object]
+        $Session,
+
+        [Parameter()]
+        [ValidateSet('none', 'permissions', 'steps')]
+        [string]
+        $Expand,
+
+        [Parameter()]
+        [string]
+        $ApprovalId
+    )
+
+    begin
+    {
+        If ($PSCmdlet.ParameterSetName -eq 'BySession')
+        {
+            $currentSession = $Session | Get-APSession
+            If ($currentSession)
+            {
+                $Instance = $currentSession.Instance
+                $Collection = $currentSession.Collection
+                $Project = $currentSession.Project
+                $PersonalAccessToken = $currentSession.PersonalAccessToken
+                $Credential = $currentSession.Credential
+                $Proxy = $currentSession.Proxy
+                $ProxyCredential = $currentSession.ProxyCredential
+                If ($currentSession.Version)
+                {
+                    $ApiVersion = (Get-APApiVersion -Version $currentSession.Version)
+                }
+                else
+                {
+                    $ApiVersion = $currentSession.ApiVersion
+                }
+            }
+        }
+    }
+    
+    process
+    {
+        $apiEndpoint = (Get-APApiEndpoint -ApiType 'pipelines-approvalId') -f $ApprovalId
+        $queryParameters = Set-APQueryParameters -InputObject $PSBoundParameters
+        $setAPUriSplat = @{
+            Collection  = $Collection
+            Instance    = $Instance
+            Project     = $Project
+            ApiVersion  = $ApiVersion
+            ApiEndpoint = $apiEndpoint
+            Query       = $queryParameters
+        }
+        [uri] $uri = Set-APUri @setAPUriSplat
+        $invokeAPRestMethodSplat = @{
+            Method              = 'GET'
+            Uri                 = $uri
+            Credential          = $Credential
+            PersonalAccessToken = $PersonalAccessToken
+            Proxy               = $Proxy
+            ProxyCredential     = $ProxyCredential
+        }
+        $results = Invoke-APRestMethod @invokeAPRestMethodSplat
+        If ($results)
+        {
+            return $results
+        }
+        else
+        {
+            return
+        }
+    }
+    
+    end
+    {
+    }
+}
+# Get-APPipelineApprovalList.ps1
+function Get-APPipelineApprovalList
+{
+    <#
+    .SYNOPSIS
+
+    Returns a list of Azure Pipeline approvals.
+
+    .DESCRIPTION
+
+    Returns a list of Azure Pipeline approvals based on a filter query.
+
+    .PARAMETER Instance
+    
+    The Team Services account or TFS server.
+    
+    .PARAMETER Collection
+    
+    For Azure DevOps the value for collection should be the name of your orginization. 
+    For both Team Services and TFS The value should be DefaultCollection unless another collection has been created.
+
+    .PARAMETER Project
+    
+    Project ID or project name.
+
+    .PARAMETER ApiVersion
+    
+    Version of the api to use.
+
+    .PARAMETER PersonalAccessToken
+    
+    Personal access token used to authenticate that has been converted to a secure string. 
+    It is recomended to uses an Azure Pipelines PS session to pass the personal access token parameter among funcitons, See New-APSession.
+    https://docs.microsoft.com/en-us/azure/devops/organizations/accounts/use-personal-access-tokens-to-authenticate?view=vsts
+    
+    .PARAMETER Credential
+
+    Specifies a user account that has permission to send the request.
+
+    .PARAMETER Proxy
+    
+    Use a proxy server for the request, rather than connecting directly to the Internet resource. Enter the URI of a network proxy server.
+
+    .PARAMETER ProxyCredential
+    
+    Specifie a user account that has permission to use the proxy server that is specified by the -Proxy parameter. The default is the current user.
+
+    .PARAMETER Session
+
+    Azure DevOps PS session, created by New-APSession.
+
+    .PARAMETER Expand
+
+    Approval details to expand. Options are none, permissions, steps.
+
+    .PARAMETER ApprovalIds
+
+    The id of the approval.
+
+    .INPUTS
+    
+    None, does not support pipeline.
+
+    .OUTPUTS
+
+    PSObject, Azure Pipelines approval(s)
+
+    .EXAMPLE
+
+    Returns an AP approval list in the 'myFirstProject'.
+
+    Get-APPipelineApprovalList -Instance 'https://dev.azure.com' -Collection 'myCollection' -Project 'myFirstProject' -ApiVersion 6.1-preview -ApprovalIds 4eg5aavx-1000-4333-ba70-67d5b15f0e
+
+    .LINK
+
+    https://docs.microsoft.com/en-us/rest/api/azure/devops/approvalsandchecks/approvals/query?view=azure-devops-rest-6.1
+    #>
+    [CmdletBinding(DefaultParameterSetName = 'ByPersonalAccessToken')]
+    Param
+    (
+        [Parameter(Mandatory,
+            ParameterSetName = 'ByPersonalAccessToken')]
+        [Parameter(Mandatory,
+            ParameterSetName = 'ByCredential')]
+        [uri]
+        $Instance,
+
+        [Parameter(Mandatory,
+            ParameterSetName = 'ByPersonalAccessToken')]
+        [Parameter(Mandatory,
+            ParameterSetName = 'ByCredential')]
+        [string]
+        $Collection,
+
+        [Parameter(Mandatory,
+            ParameterSetName = 'ByPersonalAccessToken')]
+        [Parameter(Mandatory,
+            ParameterSetName = 'ByCredential')]
+        [string]
+        $Project,
+
+        [Parameter(Mandatory,
+            ParameterSetName = 'ByPersonalAccessToken')]
+        [Parameter(Mandatory,
+            ParameterSetName = 'ByCredential')]
+        [string]
+        $ApiVersion,
+
+        [Parameter(ParameterSetName = 'ByPersonalAccessToken')]
+        [Security.SecureString]
+        $PersonalAccessToken,
+
+        [Parameter(ParameterSetName = 'ByCredential')]
+        [pscredential]
+        $Credential,
+
+        [Parameter(ParameterSetName = 'ByPersonalAccessToken')]
+        [Parameter(ParameterSetName = 'ByCredential')]
+        [string]
+        $Proxy,
+
+        [Parameter(ParameterSetName = 'ByPersonalAccessToken')]
+        [Parameter(ParameterSetName = 'ByCredential')]
+        [pscredential]
+        $ProxyCredential,
+
+        [Parameter(Mandatory,
+            ParameterSetName = 'BySession')]
+        [object]
+        $Session,
+
+        [Parameter()]
+        [string]
+        $Expand,
+
+        [Parameter()]
+        [string[]]
+        $ApprovalIds
+    )
+
+    begin
+    {
+        If ($PSCmdlet.ParameterSetName -eq 'BySession')
+        {
+            $currentSession = $Session | Get-APSession
+            If ($currentSession)
+            {
+                $Instance = $currentSession.Instance
+                $Collection = $currentSession.Collection
+                $Project = $currentSession.Project
+                $PersonalAccessToken = $currentSession.PersonalAccessToken
+                $Credential = $currentSession.Credential
+                $Proxy = $currentSession.Proxy
+                $ProxyCredential = $currentSession.ProxyCredential
+                If ($currentSession.Version)
+                {
+                    $ApiVersion = (Get-APApiVersion -Version $currentSession.Version)
+                }
+                else
+                {
+                    $ApiVersion = $currentSession.ApiVersion
+                }
+            }
+        }
+    }
+    
+    process
+    {
+        $apiEndpoint = Get-APApiEndpoint -ApiType 'pipelines-approvals'
+        $queryParameters = Set-APQueryParameters -InputObject $PSBoundParameters
+        $setAPUriSplat = @{
+            Collection  = $Collection
+            Instance    = $Instance
+            Project     = $Project
+            ApiVersion  = $ApiVersion
+            ApiEndpoint = $apiEndpoint
+            Query       = $queryParameters
+        }
+        [uri] $uri = Set-APUri @setAPUriSplat
+        $invokeAPWebRequestSplat = @{
+            Method              = 'GET'
+            Uri                 = $uri
+            Credential          = $Credential
+            PersonalAccessToken = $PersonalAccessToken
+            Proxy               = $Proxy
+            ProxyCredential     = $ProxyCredential
+        }
+        $results = Invoke-APWebRequest @invokeAPWebRequestSplat
+        If ($results.value.count -eq 0)
+        {
+            return
+        }
+        elseIf ($results.value)
+        {
+            return $results.value
+        }
+        else
+        {
+            return $results
+        }
+    }
+    
+    end
+    {
+    }
+}
 # Get-APPipelineList.ps1
 function Get-APPipelineList
 {
@@ -17278,6 +17928,277 @@ function Get-APPipelineLogList
         else
         {
             return $results
+        }
+    }
+    
+    end
+    {
+    }
+}
+# Get-APPipelinePendingApprovalList.ps1
+function Get-APPipelinePendingApprovalList
+{
+    <#
+    .SYNOPSIS
+
+    Returns a custom list of pending Azure Pipeline approvals filtered by build properties.
+
+    .DESCRIPTION
+
+    Returns a custom list of pending Azure Pipeline approvals based on a filter query.
+
+    .PARAMETER Instance
+
+    The Team Services account or TFS server.
+
+    .PARAMETER Collection
+
+    For Azure DevOps the value for collection should be the name of your orginization. 
+    For both Team Services and TFS The value should be DefaultCollection unless another collection has been created.
+
+    .PARAMETER Project
+
+    Project ID or project name.
+
+    .PARAMETER ApiVersion
+
+    Version of the api to use.
+
+    .PARAMETER PersonalAccessToken
+
+    Personal access token used to authenticate that has been converted to a secure string. 
+    It is recomended to uses an Azure Pipelines PS session to pass the personal access token parameter among funcitons, See New-APSession.
+    https://docs.microsoft.com/en-us/azure/devops/organizations/accounts/use-personal-access-tokens-to-authenticate?view=vsts
+
+    .PARAMETER Credential
+
+    Specifies a user account that has permission to send the request.
+
+    .PARAMETER Proxy
+
+    Use a proxy server for the request, rather than connecting directly to the Internet resource. Enter the URI of a network proxy server.
+
+    .PARAMETER ProxyCredential
+
+    Specifie a user account that has permission to use the proxy server that is specified by the -Proxy parameter. The default is the current user.
+
+    .PARAMETER Session
+
+    Azure DevOps PS session, created by New-APSession.
+
+    .PARAMETER BranchName
+
+    The name of the builds source branch. Ex: 'refs/heads/master'
+
+    .PARAMETER Definitions
+
+    The id of the build definition.
+
+    .PARAMETER BuildIds
+    
+    The ids of the builds to return pending approvals for.
+
+    .PARAMETER ExpandApproval
+
+    Return the approval object with the pending approval list.
+    This takes time because each approval needs to be queried.
+    Useful for review approval details in bulk.
+
+    .INPUTS
+    
+    None, does not support pipeline.
+
+    .OUTPUTS
+
+    PSObject, Azure Pipelines approval(s)
+
+    .EXAMPLE
+
+    Returns a custom AP approval list.
+
+    Get-APPipelineApprovalList -Instance 'https://dev.azure.com' -Collection 'myCollection' -Project 'myFirstProject' -ApiVersion 5.0-preview -ApprovalId 4eg5aavx-1000-4333-ba70-6457d5b15f0e
+
+    .LINK
+
+    https://docs.microsoft.com/en-us/rest/api/azure/devops/approvalsandchecks/approvals/query?view=azure-devops-rest-6.1
+    #>
+    [CmdletBinding(DefaultParameterSetName = 'ByPersonalAccessToken')]
+    Param
+    (
+        [Parameter(Mandatory,
+            ParameterSetName = 'ByPersonalAccessToken')]
+        [Parameter(Mandatory,
+            ParameterSetName = 'ByCredential')]
+        [uri]
+        $Instance,
+
+        [Parameter(Mandatory,
+            ParameterSetName = 'ByPersonalAccessToken')]
+        [Parameter(Mandatory,
+            ParameterSetName = 'ByCredential')]
+        [string]
+        $Collection,
+
+        [Parameter(Mandatory,
+            ParameterSetName = 'ByPersonalAccessToken')]
+        [Parameter(Mandatory,
+            ParameterSetName = 'ByCredential')]
+        [string]
+        $Project,
+
+        [Parameter(Mandatory,
+            ParameterSetName = 'ByPersonalAccessToken')]
+        [Parameter(Mandatory,
+            ParameterSetName = 'ByCredential')]
+        [string]
+        $ApiVersion,
+
+        [Parameter(ParameterSetName = 'ByPersonalAccessToken')]
+        [Security.SecureString]
+        $PersonalAccessToken,
+
+        [Parameter(ParameterSetName = 'ByCredential')]
+        [pscredential]
+        $Credential,
+
+        [Parameter(ParameterSetName = 'ByPersonalAccessToken')]
+        [Parameter(ParameterSetName = 'ByCredential')]
+        [string]
+        $Proxy,
+
+        [Parameter(ParameterSetName = 'ByPersonalAccessToken')]
+        [Parameter(ParameterSetName = 'ByCredential')]
+        [pscredential]
+        $ProxyCredential,
+
+        [Parameter(Mandatory,
+            ParameterSetName = 'BySession')]
+        [object]
+        $Session,
+
+        [Parameter()]
+        [string]
+        $BranchName,
+
+        [Parameter()]
+        [string[]]
+        $Definitions,
+
+        [Parameter()]
+        [string[]]
+        $BuildIds,
+
+        [Parameter()]
+        [switch]
+        $ExpandApproval
+    )
+
+    begin
+    {
+        If ($PSCmdlet.ParameterSetName -eq 'BySession')
+        {
+            $currentSession = $Session | Get-APSession
+            If ($currentSession)
+            {
+                $Instance = $currentSession.Instance
+                $Collection = $currentSession.Collection
+                $Project = $currentSession.Project
+                $PersonalAccessToken = $currentSession.PersonalAccessToken
+                $Credential = $currentSession.Credential
+                $Proxy = $currentSession.Proxy
+                $ProxyCredential = $currentSession.ProxyCredential
+                If ($currentSession.Version)
+                {
+                    $ApiVersion = (Get-APApiVersion -Version $currentSession.Version)
+                }
+                else
+                {
+                    $ApiVersion = $currentSession.ApiVersion
+                }
+            }
+        }
+    }
+    
+    process
+    {
+        $RECORD_TYPES = @(
+            'Checkpoint'
+            'Checkpoint.Approval'
+            'Stage'
+        )
+        $STATUS_FILTER = @(
+            'inProgress'
+            'notStarted'
+        )
+        $splat = @{
+            Instance        = $Instance
+            Collection      = $Collection
+            Project         = $Project
+            Proxy           = $Proxy
+            ProxyCredential = $ProxyCredential
+            ErrorAction     = 'Stop'
+        }
+        If ($PersonalAccessToken)
+        {
+            $splat.PersonalAccessToken = $PersonalAccessToken
+        }
+        If ($Credential)
+        {
+            $splat.Credential = $Credential
+        }
+        If ($BuildIds)
+        {
+            $builds = Get-APBuildList @Splat -ApiVersion '5.1' -BuildIds $BuildIds
+        }
+        else
+        {
+            $builds = Foreach ($filter in $STATUS_FILTER)
+            {
+                Get-APBuildList @Splat -ApiVersion '5.1' -StatusFilter $filter -BranchName $BranchName -Definitions $Definitions
+            }
+        }
+        $approvalObject = Foreach ($build in $builds)
+        {
+            $timeline = Get-APBuildTimeline @Splat -ApiVersion '5.1' -BuildId $build.id -TimelineId $build.orchestrationPlan.planId
+            $records = $timeline.records | Where-Object { $RECORD_TYPES -contains $PSitem.Type}
+            $approvals = $records.Where( {$PSitem.type -eq 'Checkpoint.Approval' -and $PSitem.state -eq 'inprogress'} )
+            foreach ($approval in $approvals)
+            {
+                $checkpoint = $records.Where( {$Psitem.id -eq $approval.parentId} )
+                $stage = $records.Where( {$Psitem.id -eq $checkpoint.parentId} )
+                If ($ExpandApproval.IsPresent)
+                {
+                    $approvalLookup = Get-APPipelineApproval @Splat -ApiVersion '6.1-preview' -ApprovalId $approval.Id
+                    [pscustomObject]@{
+                        pipelineDefinitionName = $build.definition.Name
+                        pipelineDefinitionId   = $build.definition.id
+                        pipelineRunId          = $build.id
+                        pipelineUrl            = $build._links.web.href
+                        sourceBranch           = $build.sourceBranch
+                        stageName              = $stage.name
+                        stageIdentifier        = $stage.identifier
+                        approvalId             = $approval.id
+                        approval               = $approvalLookup
+                    }
+                }
+                else
+                {
+                    [pscustomObject]@{
+                        pipelineDefinitionName = $build.definition.Name
+                        pipelineDefinitionId   = $build.definition.id
+                        pipelineRunId          = $build.id
+                        pipelineUrl            = $build._links.web.href
+                        sourceBranch           = $build.sourceBranch
+                        stageName              = $stage.name
+                        stageIdentifier        = $stage.identifier
+                        approvalId             = $approval.id
+                    }
+                }
+            }
+        }
+        if ($approvalObject)
+        {
+            return $approvalObject
         }
     }
     
@@ -29607,6 +30528,211 @@ function Get-APUser
     {
     }
 }
+# Get-APUserEntitlementList.ps1
+function Get-APUserEntitlementList
+{
+    <#
+    .SYNOPSIS
+
+    Returns a list of Azure Pipeline user entitlements.
+
+    .DESCRIPTION
+
+    Returns a list of Azure Pipeline user entitlements.
+
+    .PARAMETER Instance
+    
+    The Team Services account or TFS server.
+    
+    .PARAMETER Collection
+    
+    For Azure DevOps the value for collection should be the name of your orginization. 
+    For both Team Services and TFS The value should be DefaultCollection unless another collection has been created.
+
+    .PARAMETER ApiVersion
+    
+    Version of the api to use.
+
+    .PARAMETER PersonalAccessToken
+    
+    Personal access token used to authenticate that has been converted to a secure string. 
+    It is recomended to uses an Azure Pipelines PS session to pass the personal access token parameter among funcitons, See New-APSession.
+    https://docs.microsoft.com/en-us/azure/devops/organizations/accounts/use-personal-access-tokens-to-authenticate?view=vsts
+    
+    .PARAMETER Credential
+
+    Specifies a user account that has permission to send the request.
+
+    .PARAMETER Proxy
+    
+    Use a proxy server for the request, rather than connecting directly to the Internet resource. Enter the URI of a network proxy server.
+
+    .PARAMETER ProxyCredential
+    
+    Specifie a user account that has permission to use the proxy server that is specified by the -Proxy parameter. The default is the current user.
+
+    .PARAMETER Session
+
+    Azure DevOps PS session, created by New-APSession.
+
+    .PARAMETER SubjectTypes
+
+    A comma separated list of user subject subtypes to reduce the retrieved results, e.g. msa’, ‘aad’, ‘svc’ (service identity), ‘imp’ (imported identity), etc.
+
+    .PARAMETER ContinuationToken
+
+    An opaque data blob that allows the next page of data to resume immediately after where the previous page ended. The only reliable way to know if there is more data left is the presence of a continuation token.
+
+    .INPUTS
+    
+    None, does not support pipeline.
+
+    .OUTPUTS
+
+    PSObject, Azure Pipelines account(s)
+
+    .EXAMPLE
+
+    Returns AP user list for 'myCollection'.
+
+    Get-APUserEntitlementList -Instance 'https://dev.azure.com' -Collection 'myCollection' -ApiVersion 6.1-preview
+
+    .LINK
+
+    https://docs.microsoft.com/en-us/rest/api/azure/devops/graph/users/get?view=azure-devops-rest-6.1
+    #>
+    [CmdletBinding(DefaultParameterSetName = 'ByPersonalAccessToken')]
+    Param
+    (
+        [Parameter(Mandatory,
+            ParameterSetName = 'ByPersonalAccessToken')]
+        [Parameter(Mandatory,
+            ParameterSetName = 'ByCredential')]
+        [uri]
+        $Instance,
+
+        [Parameter(Mandatory,
+            ParameterSetName = 'ByPersonalAccessToken')]
+        [Parameter(Mandatory,
+            ParameterSetName = 'ByCredential')]
+        [string]
+        $Collection,
+
+        [Parameter(Mandatory,
+            ParameterSetName = 'ByPersonalAccessToken')]
+        [Parameter(Mandatory,
+            ParameterSetName = 'ByCredential')]
+        [string]
+        $ApiVersion,
+
+        [Parameter(ParameterSetName = 'ByPersonalAccessToken')]
+        [Security.SecureString]
+        $PersonalAccessToken,
+
+        [Parameter(ParameterSetName = 'ByCredential')]
+        [pscredential]
+        $Credential,
+        
+        [Parameter(ParameterSetName = 'ByPersonalAccessToken')]
+        [Parameter(ParameterSetName = 'ByCredential')]
+        [string]
+        $Proxy,
+
+        [Parameter(ParameterSetName = 'ByPersonalAccessToken')]
+        [Parameter(ParameterSetName = 'ByCredential')]
+        [pscredential]
+        $ProxyCredential,
+
+        [Parameter(Mandatory,
+            ParameterSetName = 'BySession')]
+        [object]
+        $Session,
+
+        [Parameter()]
+        [string[]]
+        $SubjectTypes,
+
+        [Parameter()]
+        [string]
+        $ContinuationToken
+    )
+
+    begin
+    {
+        If ($PSCmdlet.ParameterSetName -eq 'BySession')
+        {
+            $currentSession = $Session | Get-APSession
+            If ($currentSession)
+            {
+                $Instance = $currentSession.Instance
+                $Collection = $currentSession.Collection
+                $PersonalAccessToken = $currentSession.PersonalAccessToken
+                $Credential = $currentSession.Credential
+                $Proxy = $currentSession.Proxy
+                $ProxyCredential = $currentSession.ProxyCredential
+                If ($currentSession.Version)
+                {
+                    $ApiVersion = (Get-APApiVersion -Version $currentSession.Version)
+                }
+                else
+                {
+                    $ApiVersion = $currentSession.ApiVersion
+                }
+            }
+        }
+    }
+    
+    process
+    {
+        $apiEndpoint = Get-APApiEndpoint -ApiType 'userentitlements-entitlements'
+        $queryParameters = Set-APQueryParameters -InputObject $PSBoundParameters
+        $setAPUriSplat = @{
+            Collection         = $Collection
+            Instance           = $Instance
+            ApiVersion         = $ApiVersion
+            ApiEndpoint        = $apiEndpoint
+            Query              = $queryParameters
+            ApiSubDomainSwitch = 'vsaex'
+        }
+        [uri] $uri = Set-APUri @setAPUriSplat
+        $invokeAPWebRequestSplat = @{
+            Method              = 'GET'
+            Uri                 = $uri
+            Credential          = $Credential
+            PersonalAccessToken = $PersonalAccessToken
+            Proxy               = $Proxy
+            ProxyCredential     = $ProxyCredential
+        }
+        $results = Invoke-APWebRequest @invokeAPWebRequestSplat
+        If ($results.value.continuationToken)
+        {
+            $results.value.members
+            $null = $PSBoundParameters.Remove('ContinuationToken')
+            $continuationToken = [System.Web.HttpUtility]::UrlEncode($results.value.continuationToken)
+            Get-APUserEntitlementList @PSBoundParameters -ContinuationToken $continuationToken
+        }
+        elseIf ($results.value.members.count -eq 0)
+        {
+            return
+        }
+        elseIf ($results.value.members)
+        {
+            return $results.value.members
+        }
+        elseIf ($results.value)
+        {
+            return $results.value
+        }
+        else
+        {
+            return $results
+        }
+    }
+    
+    end
+    {
+    }
+}
 # Get-APUserList.ps1
 function Get-APUserList
 {
@@ -33058,7 +34184,7 @@ function Invoke-APRestMethod
         $Method,
 
         [Parameter()]
-        [psobject]
+        [object]
         $Body,
 
         [Parameter(Mandatory)]
@@ -33108,7 +34234,7 @@ function Invoke-APRestMethod
         }
         If ($Body)
         {
-            $invokeRestMethodSplat.Body = $Body | ConvertTo-Json -Depth 20 
+            $invokeRestMethodSplat.Body = ConvertTo-Json -InputObject $Body -Depth 20
         }
         If ($Proxy)
         {
@@ -33443,7 +34569,7 @@ function Invoke-APWebRequest
         $Method,
 
         [Parameter()]
-        [psobject]
+        [object]
         $Body,
 
         [Parameter(Mandatory)]
@@ -33489,7 +34615,7 @@ function Invoke-APWebRequest
         }
         If ($Body)
         {
-            $invokeRestMethodSplat.Body = $Body | ConvertTo-Json -Depth 20 
+            $invokeRestMethodSplat.Body = ConvertTo-Json -InputObject $Body -Depth 20
         }
         If ($Proxy)
         {
@@ -48490,6 +49616,230 @@ function Update-APNode
         else
         {
             $results
+        }
+    }
+    
+    end
+    {
+    }
+}
+# Update-APPipelineApproval.ps1
+function Update-APPipelineApproval
+{
+    <#
+    .SYNOPSIS
+
+    Updates an Azure Pipeline approval status.
+
+    .DESCRIPTION
+
+    Updates an Azure Pipeline approval status.
+    Return a list of pending approvals with Get-APPipelinePendingApprovalList.
+
+    .PARAMETER Instance
+    
+    The Team Services account or TFS server.
+    
+    .PARAMETER Collection
+    
+    For Azure DevOps the value for collection should be the name of your orginization. 
+    For both Team Services and TFS The value should be DefaultCollection unless another collection has been created.
+
+    .PARAMETER Project
+    
+    Project ID or project name.
+
+    .PARAMETER ApiVersion
+    
+    Version of the api to use.
+
+    .PARAMETER PersonalAccessToken
+    
+    Personal access token used to authenticate that has been converted to a secure string. 
+    It is recomended to uses an Azure Pipelines PS session to pass the personal access token parameter among funcitons, See New-APSession.
+    https://docs.microsoft.com/en-us/azure/devops/organizations/accounts/use-personal-access-tokens-to-authenticate?view=vsts
+    
+    .PARAMETER Credential
+
+    Specifies a user account that has permission to send the request.
+
+    .PARAMETER Proxy
+    
+    Use a proxy server for the request, rather than connecting directly to the Internet resource. Enter the URI of a network proxy server.
+
+    .PARAMETER ProxyCredential
+    
+    Specifie a user account that has permission to use the proxy server that is specified by the -Proxy parameter. The default is the current user.
+
+    .PARAMETER Session
+
+    Azure DevOps PS session, created by New-APSession.
+    
+    .PARAMETER ApprovalId
+
+    The id of the approval.
+
+    .PARAMETER Comment
+
+    The approval comment.
+
+    .PARAMETER Status
+
+    The updated status of the approval.
+
+    .INPUTS
+
+    None, does not support pipeline.
+
+    .OUTPUTS
+
+    PSObject, Azure Pipelines approval(s)
+
+    .EXAMPLE
+
+    Returns an AP approval list for the current user in the 'myFirstProject'.
+
+    Update-APPipelineApproval -Instance 'https://dev.azure.com' -Collection 'myCollection' -Project 'myFirstProject' -ApiVersion 6.1-preview -ApprovalId 4eg5aavx-1000-4333-ba70-67d5b15f0e -Status approved
+
+    .LINK
+
+    https://docs.microsoft.com/en-us/rest/api/azure/devops/approvalsandchecks/approvals/update?view=azure-devops-rest-6.1
+    #>
+    [CmdletBinding(DefaultParameterSetName = 'ByPersonalAccessToken')]
+    Param
+    (
+        [Parameter(Mandatory,
+            ParameterSetName = 'ByPersonalAccessToken')]
+        [Parameter(Mandatory,
+            ParameterSetName = 'ByCredential')]
+        [uri]
+        $Instance,
+
+        [Parameter(Mandatory,
+            ParameterSetName = 'ByPersonalAccessToken')]
+        [Parameter(Mandatory,
+            ParameterSetName = 'ByCredential')]
+        [string]
+        $Collection,
+
+        [Parameter(Mandatory,
+            ParameterSetName = 'ByPersonalAccessToken')]
+        [Parameter(Mandatory,
+            ParameterSetName = 'ByCredential')]
+        [string]
+        $Project,
+
+        [Parameter(Mandatory,
+            ParameterSetName = 'ByPersonalAccessToken')]
+        [Parameter(Mandatory,
+            ParameterSetName = 'ByCredential')]
+        [string]
+        $ApiVersion,
+
+        [Parameter(ParameterSetName = 'ByPersonalAccessToken')]
+        [Security.SecureString]
+        $PersonalAccessToken,
+
+        [Parameter(ParameterSetName = 'ByCredential')]
+        [pscredential]
+        $Credential,
+
+        [Parameter(ParameterSetName = 'ByPersonalAccessToken')]
+        [Parameter(ParameterSetName = 'ByCredential')]
+        [string]
+        $Proxy,
+
+        [Parameter(ParameterSetName = 'ByPersonalAccessToken')]
+        [Parameter(ParameterSetName = 'ByCredential')]
+        [pscredential]
+        $ProxyCredential,
+
+        [Parameter(Mandatory,
+            ParameterSetName = 'BySession')]
+        [object]
+        $Session,
+
+        [Parameter(Mandatory)]
+        [string[]]
+        $ApprovalId,
+
+        [Parameter()]
+        [string]
+        $Comment,
+
+        [Parameter(Mandatory)]
+        [ValidateSet('approved', 'rejected')]
+        [string]
+        $Status
+    )
+
+    begin
+    {
+        If ($PSCmdlet.ParameterSetName -eq 'BySession')
+        {
+            $currentSession = $Session | Get-APSession
+            If ($currentSession)
+            {
+                $Instance = $currentSession.Instance
+                $Collection = $currentSession.Collection
+                $Project = $currentSession.Project
+                $PersonalAccessToken = $currentSession.PersonalAccessToken
+                $Credential = $currentSession.Credential
+                $Proxy = $currentSession.Proxy
+                $ProxyCredential = $currentSession.ProxyCredential
+                If ($currentSession.Version)
+                {
+                    $ApiVersion = (Get-APApiVersion -Version $currentSession.Version)
+                }
+                else
+                {
+                    $ApiVersion = $currentSession.ApiVersion
+                }
+            }
+        }
+    }
+    
+    process
+    {
+        [array] $body = Foreach ($id in $ApprovalId)
+        {
+            @{
+                approvalId = $id
+                status     = $Status
+                comment    = $Comment
+            }
+        }
+        $apiEndpoint = Get-APApiEndpoint -ApiType 'pipelines-approvals'
+        $setAPUriSplat = @{
+            Collection  = $Collection
+            Instance    = $Instance
+            Project     = $Project
+            ApiVersion  = $ApiVersion
+            ApiEndpoint = $apiEndpoint
+        }
+        [uri] $uri = Set-APUri @setAPUriSplat
+        $invokeAPWebRequestSplat = @{
+            Method              = 'PATCH'
+            Uri                 = $uri
+            Credential          = $Credential
+            PersonalAccessToken = $PersonalAccessToken
+            Body                = $body
+            ContentType         = 'application/json'
+            Proxy               = $Proxy
+            ProxyCredential     = $ProxyCredential
+        }
+        $results = Invoke-APWebRequest @invokeAPWebRequestSplat
+        If ($results.value.count -eq 0)
+        {
+            return
+        }
+        elseIf ($results.value)
+        {
+            return $results.value
+        }
+        else
+        {
+            return $results
         }
     }
     
