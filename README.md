@@ -51,3 +51,4 @@ New-PSGitPullRequest -SourceBranch "feat/new-ui" -TargetBranch "master" -Title "
 Get-PSGitPullRequest
 ```
 For more details look tests on *PSGit.Tests.ps1*
+
