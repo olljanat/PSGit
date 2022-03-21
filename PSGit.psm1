@@ -1,6 +1,7 @@
 Import-Module -Name $PSScriptRoot/dependencies/AzurePipelinesPS -Force
 Import-Module -Name $PSScriptRoot/dependencies/PowerShellForGitHub -Force
 
+
 Function Invoke-PSGitLogin {
     <#
     .SYNOPSIS
